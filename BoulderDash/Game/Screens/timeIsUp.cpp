@@ -1,4 +1,7 @@
 #include "timeIsUp.h"
+
+#include <list>
+
 #include "menuscreen.h"
 #include "..\level.h"
 #include "..\..\Engine\texture.h"

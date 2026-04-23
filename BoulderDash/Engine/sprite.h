@@ -11,7 +11,7 @@ namespace Engine
 		TextureBase* m_tex;
 	public:
 		Sprite(TextureBase *tex);
-		void draw(float x, float y, float width, float height);
+		void draw(float x, float y, float width, float height) const;
 		TextureBase* getTexture() const { return m_tex; }
 	};
 }

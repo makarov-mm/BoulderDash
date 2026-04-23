@@ -1,5 +1,8 @@
 #include "sprite.h"
 
+#include <windows.h>
+#include <gl/gl.h>
+
 namespace Engine
 {
 	Sprite::Sprite(TextureBase* tex)
@@ -7,7 +10,7 @@ namespace Engine
 		m_tex = tex;
 	}
 
-	void Sprite::draw(float x, float y, float width, float height)
+	void Sprite::draw(float x, float y, float width, float height) const
 	{
 		m_tex->enable();
 		Point<float> texCoord = m_tex->getTextureCoords();

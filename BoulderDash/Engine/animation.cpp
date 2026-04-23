@@ -4,8 +4,8 @@ namespace Engine
 {
 	Animation::~Animation()
 	{
-		for (std::vector<Texture*>::iterator it = m_textures.begin(); it != m_textures.end(); ++it)
-			delete *it;
+		for (auto& m_texture : m_textures)
+			delete m_texture;
 	}
 
 	void Animation::update(int timeSpan)

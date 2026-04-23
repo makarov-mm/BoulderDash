@@ -1,15 +1,14 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "gameBase.h"
-#include "..\FreeImage\FreeImage.h"
 #include "textureBase.h"
+#include "..\Glut\freeglut.h"
 
 #pragma comment (lib, "FreeImage.lib")
 
 namespace Engine
 {
-	class Texture: public TextureBase
+	class Texture final: public TextureBase
 	{
 	private:
 		static int m_texturesCounter;
@@ -21,7 +20,7 @@ namespace Engine
 		unsigned int  m_size;
 		unsigned int  m_sourceWidth, m_sourceHeight;
 	public:
-		~Texture();
+		~Texture() override;
 		static Texture* load(const char* filename);
 		virtual void enable();
 		virtual Point<float> getTextureCoords();

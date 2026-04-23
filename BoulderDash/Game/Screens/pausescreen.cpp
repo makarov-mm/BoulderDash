@@ -1,4 +1,7 @@
 #include "pausescreen.h"
+
+#include <list>
+
 #include "..\level.h"
 
 namespace BoulderDash

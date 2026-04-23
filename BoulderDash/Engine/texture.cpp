@@ -1,6 +1,11 @@
 #include <cstdio>
 #include <algorithm>
+#include <windows.h>
+#include <gl/gl.h>
+
 #include "texture.h"
+#include "..\FreeImage\FreeImage.h"
+
 #define GL_CLAMP_TO_EDGE 0x812f
 
 namespace Engine
@@ -41,23 +46,23 @@ namespace Engine
 
 	Engine::Point<float> Texture::getTextureCoords()
 	{
-		return Point<float>(
-			static_cast<float>(getSourceWidth()) / getWidth(),
-			static_cast<float>(getSourceHeight()) / getHeight());
+		return {
+			static_cast<float>(getSourceWidth()) / static_cast<float>(getWidth()),
+			static_cast<float>(getSourceHeight()) / static_cast<float>(getHeight())
+		};
 	}
 
 	Engine::Texture* Texture::load(const char* filename)
 	{
 		Texture* texture = new Texture();
 
-		FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
-		fif = FreeImage_GetFileType(filename, 0);
+		FREE_IMAGE_FORMAT fif = FreeImage_GetFileType(filename, 0);
 		if (fif == FIF_UNKNOWN)
 			fif = FreeImage_GetFIFFromFilename(filename);
 		if (fif == FIF_UNKNOWN)
-			return 0;
+			return nullptr;
 		if (!FreeImage_FIFSupportsReading(fif))
-			return 0;
+			return nullptr;
 		FIBITMAP* dib = FreeImage_Load(fif, filename);
 
 		BYTE* bits = FreeImage_GetBits(dib);
@@ -69,21 +74,23 @@ namespace Engine
 		int sizesCount = sizeof sizes / sizeof(int);
 		unsigned int sourceSize = std::max<unsigned int>(texture->m_sourceWidth, texture->m_sourceHeight);
 		int targetSize = sizes[sizesCount - 1];
+
 		if (sourceSize > targetSize)
-			return 0;
+			return nullptr;
+
 		for (int i = 0; i < sizesCount - 1; ++i)
 			if (sourceSize <= sizes[i])
 			{
 				targetSize = sizes[i];
 				break;
 			}
+
 		texture->m_size = targetSize;
 
-		BYTE tmp;
 		int size = texture->m_sourceWidth * texture->m_sourceHeight * 4;
 		for (int i = 0; i < size; i += 4)
 		{
-			tmp = bits[i];
+			BYTE tmp = bits[i];
 			bits[i] = bits[i + 2];
 			bits[i + 2] = tmp;
 		}
@@ -117,7 +124,7 @@ namespace Engine
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetSize, targetSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
 
 		FreeImage_Unload(dib);
-		delete tex;
+		delete[] tex;
 
 		return texture;
 	}

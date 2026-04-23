@@ -18,7 +18,7 @@ namespace BoulderDash
 {
 	namespace Screens
 	{
-		class LevelScreen: public Screen
+		class LevelScreen final: public Screen
 		{
 		private:
 			Level* m_level;
@@ -43,7 +43,7 @@ namespace BoulderDash
 			void save();
 		public:
 			LevelScreen(Resources *resources, int levelId, int livesCount = 2);
-			virtual ~LevelScreen();
+			~LevelScreen() override;
 
 			virtual Screen* update(int timeSpan, std::list<int> kbdEvents, MouseState mouseState);
 			virtual void draw(int timeSpan, int width, int height);

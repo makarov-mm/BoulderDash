@@ -1,6 +1,8 @@
 #ifndef PAUSESCREEN_H
 #define PAUSESCREEN_H
 
+#include <list>
+
 #include "..\screen.h"
 #include "..\..\Engine\sprite.h"
 #include "..\resources.h"
@@ -37,7 +39,7 @@ namespace BoulderDash
 				m_needResume = m_needSave = false;
 			}
 
-			~PauseScreen()
+			~PauseScreen() override
 			{
 				delete m_pauseSprite;
 

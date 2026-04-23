@@ -1,6 +1,10 @@
 #include "gameBase.h"
 #include <map>
 #include <algorithm>
+#include <windows.h>
+#include <gl\gl.h>
+#include <gl\glu.h>
+#include "..\Glut\freeglut.h"
 
 namespace Engine
 {
@@ -93,8 +97,8 @@ namespace Engine
 
 		int screenWidth = glutGet(GLUT_SCREEN_WIDTH);
 		int screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
-		const int windowWidth = 800;
-		const int windowHeight = 600;
+		constexpr int windowWidth = 800;
+		constexpr int windowHeight = 600;
 		glutInitWindowPosition((screenWidth - windowWidth) / 2, (screenHeight - windowHeight) / 2);
 		glutInitWindowSize(windowWidth, windowHeight);
 		glutSetWindow(m_wnd = glutCreateWindow(title));

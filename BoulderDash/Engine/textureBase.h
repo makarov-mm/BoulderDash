@@ -8,6 +8,7 @@ namespace Engine
 	class TextureBase
 	{
 	public:
+		virtual ~TextureBase() = default;
 		virtual void enable() = 0;
 		virtual Point<float> getTextureCoords() = 0;
 	};

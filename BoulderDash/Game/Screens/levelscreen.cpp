@@ -1,14 +1,16 @@
 #include "levelscreen.h"
 
 #include <algorithm>
-#include <vector>
 #include <cstdio>
-#include "..\..\Engine\textureBase.h"
-#include "..\..\Engine\sprite.h"
+#include <sstream>
+#include <ctime>
+
 #include "gameover.h"
 #include "timeIsUp.h"
-#include <time.h>
-#include <sstream>
+#include "..\..\Engine\sprite.h"
+#include "..\..\Engine\textureBase.h"
+#include "..\..\Glut\freeglut.h"
+
 
 namespace BoulderDash
 {
@@ -17,7 +19,7 @@ namespace BoulderDash
 		LevelScreen::LevelScreen(Resources *resources, int levelId, int livesCount)
 			: Screen(resources), m_levelId(levelId)
 		{
-			srand(time(NULL));
+			srand(time(nullptr));
 
 			m_pauseScreen = 0;
 			m_humanDirection = 2;

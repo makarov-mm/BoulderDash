@@ -1,7 +1,6 @@
 #ifndef RESOURCES_H
 #define RESOURCES_H
 
-#include "..\Engine\gameBase.h"
 #include "..\Engine\texture.h"
 #include "..\Engine\animation.h"
 
@@ -18,11 +17,11 @@ namespace BoulderDash
 	public:
 		~Resources();
 	
-		Engine::Texture* getTexture(std::string path, std::string name);
-		Engine::Texture* getTexture(std::string name) { return getTexture(std::string(), name); }
+		Engine::Texture* getTexture(const std::string& path, const std::string& name);
+		Engine::Texture* getTexture(const std::string& name) { return getTexture(std::string(), name); }
 
-		Engine::Animation* getAnimation(std::string path, std::string name, int framesCount);
-		Engine::Animation* getAnimation(std::string name, int framesCount) { return getAnimation(std::string(), name, framesCount); }
+		Engine::Animation* getAnimation(const std::string& path, const std::string& name, int framesCount);
+		Engine::Animation* getAnimation(const std::string& name, int framesCount) { return getAnimation(std::string(), name, framesCount); }
 	};
 }
 

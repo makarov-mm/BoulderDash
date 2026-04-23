@@ -3,14 +3,14 @@
 
 namespace BoulderDash
 {
-	Engine::Texture* Resources::getTexture(std::string path, std::string name)
+	Engine::Texture* Resources::getTexture(const std::string& path, const std::string& name)
 	{
 		std::map<std::string, Engine::Texture*>::iterator it = m_textures.find(name);
 		if (it != m_textures.end())
 			return it->second;
 
 		std::string fileName("Gfx\\");
-		if (path.length() > 0)
+		if (!path.empty())
 		{
 			fileName += path;
 			fileName += "\\";
@@ -22,7 +22,7 @@ namespace BoulderDash
 		return tex;
 	}
 
-	Engine::Animation* Resources::getAnimation(std::string path, std::string name, int framesCount)
+	Engine::Animation* Resources::getAnimation(const std::string& path, const std::string& name, int framesCount)
 	{
 		std::string id = path + name;
 		std::map<std::string, Engine::Animation*>::iterator it = m_animations.find(id);
@@ -30,7 +30,7 @@ namespace BoulderDash
 			return it->second;
 
 		std::string filePath("Gfx\\");
-		if (path.length() > 0)
+		if (!path.empty())
 		{
 			filePath += path;
 			filePath += "\\";
@@ -56,10 +56,10 @@ namespace BoulderDash
 
 	Resources::~Resources()
 	{
-		for (std::map<std::string, Engine::Texture*>::iterator it = m_textures.begin(); it != m_textures.end(); ++it)
-			delete it->second;
+		for (auto& m_texture : m_textures)
+			delete m_texture.second;
 
-		for (std::map<std::string, Engine::Animation*>::iterator it = m_animations.begin(); it != m_animations.end(); ++it)
-			delete it->second;
+		for (auto& m_animation : m_animations)
+			delete m_animation.second;
 	}
 }

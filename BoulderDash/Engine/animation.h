@@ -1,14 +1,14 @@
 #ifndef ANIMATION_H
 #define ANIMATION_H
 
-#include "gameBase.h"
+#include <vector>
+
 #include "textureBase.h"
 #include "texture.h"
-#include <vector>
 
 namespace Engine
 {
-	class Animation: public TextureBase
+	class Animation final: public TextureBase
 	{
 	private:
 		std::vector<Texture*> m_textures;
@@ -20,13 +20,13 @@ namespace Engine
 			: m_textures(textures.begin(), textures.end()), m_frameTime(1000 / framesPerSecond), m_timeSpan(0), m_frame(0)
 		{ }
 
-		~Animation();
+		~Animation() override;
 		void update(int timeSpan);
 		void reset();
 		Texture* current() const { return getFrame(m_frame); }
 		Texture* getFrame(int n) const { return m_textures[n]; }
-		virtual void enable() { current()->enable(); }
-		virtual Point<float> getTextureCoords() { return current()->getTextureCoords(); }
+		void enable() override { current()->enable(); }
+		Point<float> getTextureCoords() override { return current()->getTextureCoords(); }
 	};
 }
 

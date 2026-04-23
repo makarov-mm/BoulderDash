@@ -1,6 +1,8 @@
 #ifndef MENUSCREEN_H
 #define MENUSCREEN_H
 
+#include <list>
+
 #include "..\screen.h"
 #include "..\resources.h"
 #include "..\..\Engine\sprite.h"

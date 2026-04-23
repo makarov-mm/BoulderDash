@@ -5,9 +5,10 @@
 int main()
 {
 	HWND console = GetConsoleWindow();
-	if (console != NULL)
+
+	if (console != nullptr)
 		ShowWindow(console, SW_HIDE);
 
-	std::auto_ptr<Engine::GameBase> game(new BoulderDash::Game());
+	std::unique_ptr<Engine::GameBase> game(new BoulderDash::Game());
 	game->run();
 }

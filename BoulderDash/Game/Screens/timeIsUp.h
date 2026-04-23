@@ -1,6 +1,8 @@
 #ifndef TIMEISUP_H
 #define TIMEISUP_H
 
+#include <list>
+
 #include "..\screen.h"
 #include "..\resources.h"
 

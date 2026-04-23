@@ -2,10 +2,6 @@
 #define GAMEBASE_H
 
 #include <windows.h>
-#include <gl\gl.h>
-#include <gl\glu.h>
-#include "..\Glut\freeglut.h"
-#include <cmath>
 #include <list>
 
 #pragma comment (lib, "OpenGL32.lib")
