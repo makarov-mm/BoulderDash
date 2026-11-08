@@ -1,50 +1,33 @@
-#ifndef GAMEBASE_H
-#define GAMEBASE_H
+#pragma once
 
-#include <windows.h>
-#include <list>
+#include "input.h"
 
-#pragma comment (lib, "OpenGL32.lib")
-#pragma comment (lib, "GLU32.lib")
-#pragma comment (lib, "Winmm.lib")
-#pragma comment (lib, "freeglut.lib")
+#include <memory>
 
 namespace Engine
 {
+	// A window with an OpenGL context and the game loop: every frame the game is updated, then drawn.
 	class GameBase
 	{
-	private:
-		int m_wnd;
-		int m_width, m_height;
-		DWORD m_prevTime;
-		int m_mouseX, m_mouseY;
-		bool m_mouseLeft, m_mouseRight;
-		friend void mouseMotion(int x, int y);
-		friend void mouse(int button, int state, int x, int y);
 	public:
-		GameBase(const char* title);
+		// Opens a window with a client area of width x height, scaled for the screen DPI.
+		GameBase(const wchar_t* title, int width, int height);
 		virtual ~GameBase();
 
+		GameBase(const GameBase&) = delete;
+		GameBase& operator=(const GameBase&) = delete;
+
+		// Runs the game until the window is closed.
 		void run();
-		void resize(int width, int height);
-		std::list<int> kbdState;
-		DWORD getPrevTime() const { return m_prevTime; }
-		void updateTime(DWORD timeSpan) { m_prevTime += timeSpan; }
 
-		virtual void load() { };
-		virtual void unload() { };
-		virtual void update(int timeSpan) { };
-		virtual void draw(int timeSpan) { };
+	protected:
+		// Advances the game by `time` milliseconds.
+		virtual void update(int time, const Input& input) = 0;
+		// Draws the game; (0, 0) is the bottom left corner of the client area, (width, height) the top right one.
+		virtual void draw(int width, int height) = 0;
 
-		int getWidth() const { return m_width; }
-		int getHeight() const { return m_height; }
-
-		int getMouseX() const { return m_mouseX; }
-		int getMouseY() const { return m_mouseY; }
-
-		bool getMouseLeftButton() const { return m_mouseLeft; }
-		bool getMouseRightButton() const { return m_mouseRight; }
+	private:
+		struct Window;
+		std::unique_ptr<Window> m_window;
 	};
 }
-
-#endif

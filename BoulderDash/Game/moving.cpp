@@ -1,21 +1,13 @@
 #include "moving.h"
 
+#include <algorithm>
+
 namespace BoulderDash
 {
-	bool Moving::contains(int x, int y)
+	Engine::Point<float> Moving::offset() const
 	{
-		return m_oldCell.x == x && m_oldCell.y == y ||
-			   m_targetCell.x == x && m_targetCell.y == y;
-	}
-
-	void Moving::update(int timeSpan)
-	{
-		if (m_msecs > 0)
-			m_msecs -= timeSpan;
-	}
-
-	bool Moving::isDone()
-	{
-		return m_msecs <= 0;
+		const float left = std::clamp(static_cast<float>(m_left) / static_cast<float>(m_duration), 0.f, 1.f);
+		const Engine::Point<int> back = m_from - m_to;
+		return { static_cast<float>(back.x) * left, static_cast<float>(back.y) * left };
 	}
 }

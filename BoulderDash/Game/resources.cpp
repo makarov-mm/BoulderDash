@@ -1,65 +1,68 @@
 #include "resources.h"
-#include <sstream>
+#include "constants.h"
+
+#include <filesystem>
+#include <format>
+#include <string_view>
 
 namespace BoulderDash
 {
-	Engine::Texture* Resources::getTexture(const std::string& path, const std::string& name)
+	namespace
 	{
-		std::map<std::string, Engine::Texture*>::iterator it = m_textures.find(name);
-		if (it != m_textures.end())
-			return it->second;
-
-		std::string fileName("Gfx\\");
-		if (!path.empty())
+		std::filesystem::path gfx(std::string_view name)
 		{
-			fileName += path;
-			fileName += "\\";
+			std::filesystem::path path = std::filesystem::path("Gfx") / name;
+			return path.make_preferred();
 		}
-		fileName += name;
-		fileName += ".png";
-		Engine::Texture* tex = Engine::Texture::load(fileName.c_str());
-		m_textures[name] = tex;
-		return tex;
+
+		Engine::Texture image(std::string_view name)
+		{
+			return Engine::Texture(gfx(name) += ".png");
+		}
+
+		Engine::Animation animation(std::string_view name, int frames)
+		{
+			return Engine::Animation(gfx(name), frames, animationFps);
+		}
+
+		// Walking in each Direction: Gfx/<name>/<direction>/frame0-2.png
+		std::array<Engine::Animation, 4> walking(std::string_view name)
+		{
+			const auto walk = [&](int direction) { return animation(std::format("{}/{}", name, direction), 3); };
+			return { walk(0), walk(1), walk(2), walk(3) };
+		}
 	}
 
-	Engine::Animation* Resources::getAnimation(const std::string& path, const std::string& name, int framesCount)
+	Resources::Resources()
+		: background(image("bg")),
+		  ground(image("ground")),
+		  box(image("box")),
+		  boulder(image("boulder")),
+		  clock(image("clock")),
+		  crystalAnimation(animation("crystal", 21)),
+		  heartAnimation(animation("heart", 21)),
+		  doorAnimation(animation("door", 21)),
+		  human(walking("human")),
+		  ghost(walking("enemy0")),
+		  dark(walking("enemy1")),
+		  panel(image("pnl")),
+		  heart(image("heart")),
+		  emptyHeart(image("emptyHeart")),
+		  crystal(image("crystal")),
+		  slash(image("num/slash")),
+		  digits(animation("num", 10)),
+		  title(image("title")),
+		  pause(image("pause")),
+		  gameOver(image("gameOver")),
+		  timeIsUp(image("timeIsUp")),
+		  newGame(image("buttons/newGame")),
+		  newGameHovered(image("buttons/newGameActive")),
+		  load(image("buttons/load")),
+		  loadHovered(image("buttons/loadActive")),
+		  resume(image("buttons/resume")),
+		  resumeHovered(image("buttons/resumeActive")),
+		  save(image("buttons/save")),
+		  saveHovered(image("buttons/saveActive"))
 	{
-		std::string id = path + name;
-		std::map<std::string, Engine::Animation*>::iterator it = m_animations.find(id);
-		if (it != m_animations.end())
-			return it->second;
-
-		std::string filePath("Gfx\\");
-		if (!path.empty())
-		{
-			filePath += path;
-			filePath += "\\";
-		}
-		filePath += name;
-		filePath += "\\";
-		std::vector<Engine::Texture*> textures(framesCount);
-	
-		for (int i = 0; i < framesCount; ++i)
-		{
-			std::string fileName = filePath;
-			std::stringstream ss;
-			ss << "frame" << i << ".png";
-			fileName += ss.str();
-			Engine::Texture* texture = Engine::Texture::load(fileName.c_str());
-			textures[i] = texture;
-		}
-
-		Engine::Animation* animation = new Engine::Animation(textures, 15);
-		m_animations[id] = animation;
-		return animation;
-	}
-
-	Resources::~Resources()
-	{
-		for (auto& m_texture : m_textures)
-			delete m_texture.second;
-
-		for (auto& m_animation : m_animations)
-			delete m_animation.second;
 	}
 }

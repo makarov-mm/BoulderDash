@@ -1,118 +1,83 @@
 #include "level.h"
-#include <cstdio>
+#include "../Engine/platform.h"
+
+#include <algorithm>
+#include <format>
+#include <fstream>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace BoulderDash
 {
-	Level::Level(const char* filename)
+	namespace
 	{
-		FILE* file = fopen(filename, "r");
-		fscanf(file, "%d %d", &m_width, &m_height);
-		fscanf(file, "%d", &m_time);
-		m_map = new CellType[m_width * m_height];
-		char* buf = new char[m_width + 1];
+		constexpr int maxSize = 1000; // cells across, so that a broken file cannot ask for gigabytes
 
-		for (int j = 0; j < m_height; ++j)
+		Cell parse(char c)
 		{
-			fscanf(file, "%s", buf);
-
-			for (int i = 0; i < m_width; ++i)
+			switch (c)
 			{
-				char curr = buf[i];
-				CellType cell = UNDEFINED;
-				switch (curr)
-				{
-				case '0':
-					cell = GROUND;
-					break;
-				case '1':
-					cell = BOX;
-					break;
-				case '2':
-					cell = CRYSTAL;
-					break;
-				case '3':
-					cell = HUMAN;
-					break;
-				case '4':
-					cell = BOULDER;
-					break;
-				case '5':
-					cell = DOOR;
-					break;
-				case '6':
-					cell = ENEMY0;
-					break;
-				case '7':
-					cell = ENEMY1;
-					break;
-				case '8':
-					cell = HEART;
-					break;
-				case '9':
-					cell = CLOCK;
-					break;
-				case 'x':
-					cell = NONE;
-					break;
-				default:
-					cell = GROUND;
-				}
-				m_map[j * m_width + i] = cell;
+			case 'x':
+				return {};
+			case '1':
+				return { Tile::Box };
+			case '2':
+				return { Tile::Empty, Object::Crystal };
+			case '3':
+				return { Tile::Empty, Object::Human };
+			case '4':
+				return { Tile::Empty, Object::Boulder };
+			case '5':
+				return { Tile::Empty, Object::Door };
+			case '6':
+				return { Tile::Empty, Object::Ghost };
+			case '7':
+				return { Tile::Empty, Object::Dark };
+			case '8':
+				return { Tile::Empty, Object::Heart };
+			case '9':
+				return { Tile::Empty, Object::Clock };
+			default: // '0'
+				return { Tile::Ground };
 			}
 		}
-
-		fclose(file);
 	}
 
-	Level::~Level()
+	Level::Level(const std::filesystem::path& file)
 	{
-		delete m_map;
+		std::ifstream in(file);
+		if (!in)
+			throw std::runtime_error(std::format("Cannot open {}", Engine::utf8(file)));
+		const auto invalid = [&] { return std::runtime_error(std::format("{} is not a level file", Engine::utf8(file))); };
+
+		if (!(in >> m_width >> m_height >> m_timeLimit) || m_width <= 0 || m_height <= 0 || m_width > maxSize || m_height > maxSize || m_timeLimit <= 0)
+			throw invalid();
+
+		m_cells.reserve(static_cast<std::size_t>(m_width * m_height));
+		for (int y = 0; y < m_height; ++y)
+		{
+			std::string row;
+			if (!(in >> row) || std::ssize(row) < m_width)
+				throw invalid();
+			for (int x = 0; x < m_width; ++x)
+				m_cells.push_back(parse(row[static_cast<std::size_t>(x)]));
+		}
 	}
 
-	CellType Level::get(int x, int y) const
+	std::filesystem::path Level::file(int id)
 	{
-		return m_map[y * m_width + x];
+		return std::filesystem::path("Levels") / std::format("{}.txt", id);
 	}
 
-	void Level::set(int x, int y, CellType value)
+	int Level::count(Object object) const
 	{
-		m_map[y * m_width + x] = value;
+		return static_cast<int>(std::ranges::count(m_cells, object, &Cell::object));
 	}
 
-	int Level::minCellsOnScreen = 12;
-
-	Engine::Point<int> Level::findHumanPosition()
+	void Level::setCells(std::vector<Cell> cells)
 	{
-		for (int j = 0; j < m_height; ++j)
-			for (int i = 0; i < m_width; ++i)
-				if (get(i, j) == HUMAN)
-					return Engine::Point<int>(i, j);
-	}
-
-	std::vector<Engine::Point<int>> Level::findEmenies()
-	{
-		std::vector<Engine::Point<int>> enemies;
-
-		for (int j = 0; j < m_height; ++j)
-			for (int i = 0; i < m_width; ++i)
-			{
-				CellType cell = get(i, i);
-				if (cell == ENEMY0 || cell == ENEMY1)
-					enemies.push_back(Engine::Point<int>(i, j));
-			}
-
-		return enemies;
-	}
-
-	int Level::getCrystalsCount() const
-	{
-		int count = 0;
-
-		for (int j = 0; j < m_height; ++j)
-			for (int i = 0; i < m_width; ++i)
-				if ((get(i, j) & OBJECTS) == CRYSTAL)
-					++count;
-
-		return count;
+		assert(cells.size() == m_cells.size());
+		m_cells = std::move(cells);
 	}
 }

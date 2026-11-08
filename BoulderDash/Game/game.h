@@ -1,29 +1,23 @@
-#ifndef GAME_H
-#define GAME_H
+#pragma once
 
-#include "..\Engine\gameBase.h"
-#include "..\Engine\texture.h"
-#include "..\Engine\animation.h"
 #include "resources.h"
 #include "screen.h"
-#include "Screens\levelscreen.h"
+#include "../Engine/gameBase.h"
+
+#include <memory>
 
 namespace BoulderDash
 {
-	class Game: public Engine::GameBase
+	class Game final : public Engine::GameBase
 	{
-	private:
-		Resources m_resources;
-		Screen* m_screen;
 	public:
-		Game() : GameBase("BoulderDash") { }
+		Game();
 
-		virtual void load();
-		virtual void unload();
+	private:
+		void update(int time, const Engine::Input& input) override;
+		void draw(int width, int height) override;
 
-		virtual void update(int timeSpan);
-		virtual void draw(int timeSpan);
+		Resources m_resources;
+		std::unique_ptr<Screen> m_screen;
 	};
 }
-
-#endif

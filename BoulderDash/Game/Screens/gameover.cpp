@@ -1,49 +1,29 @@
 #include "gameover.h"
-
-#include <list>
-
 #include "menuscreen.h"
-#include "..\level.h"
-#include "..\..\Engine\texture.h"
-#include "..\..\Engine\sprite.h"
+#include "../ui.h"
 
-namespace BoulderDash
+namespace BoulderDash::Screens
 {
-	namespace Screens
+	GameOver::GameOver(const Resources& resources, Reason reason)
+		: Screen(resources), m_banner(reason == Reason::TimeIsUp ? resources.timeIsUp : resources.gameOver)
 	{
-		Screen* GameOver::update(int timeSpan, std::list<int> kbdEvents, MouseState mouseState)
-		{
-			for (std::list<int>::const_iterator it = kbdEvents.begin(); it != kbdEvents.end(); ++it)
-			{
-				if (*it == 13 /* enter */)
-					return new MenuScreen(getResources());
-			}
+	}
 
-			return 0;
-		}
+	std::unique_ptr<Screen> GameOver::update(int, const Engine::Input& input)
+	{
+		using namespace Engine::Key;
+		if (input.wasPressed(Enter) || input.wasPressed(Escape) || input.wasPressed(Space) || input.clicked)
+			return std::make_unique<MenuScreen>(resources());
+		return nullptr;
+	}
 
-		void GameOver::draw(int timeSpan, int width, int height)
-		{
-			int optimalRectSize = std::min<int>(
-				width / Level::minCellsOnScreen,
-				height / Level::minCellsOnScreen);
+	void GameOver::draw(int width, int height) const
+	{
+		drawTiles(resources().box, width, height);
 
-			Engine::Texture* bgTexture = getResources()->getTexture("box");
-			for (int j = 0; j < height; j += optimalRectSize)
-				for (int i = 0; i < width; i += optimalRectSize)
-				{
-					Engine::Sprite bgSprite(bgTexture);
-					bgSprite.draw(i, j, optimalRectSize, optimalRectSize);
-				}
-
-			const float dist = height / 30.f;
-			Engine::Texture* titleTexture = getResources()->getTexture("gameOver");
-			float titleWidth = width / 2.f;
-			float titleHeight = titleWidth / titleTexture->getSourceWidth() * titleTexture->getSourceHeight();
-			float titleX = (width - titleWidth) / 2.f;
-			float titleY = height - titleHeight - titleX;
-			Engine::Sprite titleSprite(titleTexture);
-			titleSprite.draw(titleX, titleY, titleWidth, titleHeight);
-		}
+		const float bannerWidth = static_cast<float>(width) / 2;
+		const float bannerHeight = bannerWidth / m_banner.aspect();
+		const float x = (static_cast<float>(width) - bannerWidth) / 2;
+		m_banner.draw(x, static_cast<float>(height) - bannerHeight - x, bannerWidth, bannerHeight);
 	}
 }

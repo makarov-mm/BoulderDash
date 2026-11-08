@@ -1,131 +1,116 @@
-#include <cstdio>
-#include <algorithm>
-#include <windows.h>
-#include <gl/gl.h>
-
 #include "texture.h"
-#include "..\FreeImage\FreeImage.h"
+#include "platform.h"
 
-#define GL_CLAMP_TO_EDGE 0x812f
+#include <windows.h>
+#include <wincodec.h>
+#include <wrl/client.h>
+#include <GL/gl.h>
+
+#include <format>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+
+#ifndef GL_CLAMP_TO_EDGE
+#define GL_CLAMP_TO_EDGE 0x812F
+#endif
+#ifndef GL_GENERATE_MIPMAP
+#define GL_GENERATE_MIPMAP 0x8191
+#endif
 
 namespace Engine
 {
-	int Texture::m_texturesCounter = 0;
-	Texture* Texture::m_active = 0;
-
-	Texture::Texture()
+	namespace
 	{
-		glGenTextures(1, &n);
-		glBindTexture(GL_TEXTURE_2D, n);
+		unsigned int s_bound = 0; // the texture bound last, so as not to bind it again
 
-		#ifdef FREEIMAGE_LIB
-		if (!m_texturesCounter)
-			FreeImage_Initialise();
-		++m_texturesCounter;
-		#endif
+		void bind(unsigned int id)
+		{
+			if (id != s_bound)
+			{
+				glBindTexture(GL_TEXTURE_2D, id);
+				s_bound = id;
+			}
+		}
+
+		// Decodes an image into RGBA with premultiplied alpha, top row first.
+		std::vector<BYTE> decode(const std::filesystem::path& file, UINT& width, UINT& height)
+		{
+			using Microsoft::WRL::ComPtr;
+			const auto check = [&](HRESULT result)
+			{
+				if (FAILED(result))
+					throw std::runtime_error(std::format("Cannot load {}", utf8(file)));
+			};
+
+			ComPtr<IWICImagingFactory> factory;
+			check(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory)));
+			ComPtr<IWICBitmapDecoder> decoder;
+			check(factory->CreateDecoderFromFilename(file.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder));
+			ComPtr<IWICBitmapFrameDecode> frame;
+			check(decoder->GetFrame(0, &frame));
+			ComPtr<IWICFormatConverter> converter;
+			check(factory->CreateFormatConverter(&converter));
+			check(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPRGBA, WICBitmapDitherTypeNone, nullptr, 0.0, WICBitmapPaletteTypeCustom));
+			check(converter->GetSize(&width, &height));
+
+			std::vector<BYTE> pixels(std::size_t{ width } * height * 4);
+			check(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()));
+			return pixels;
+		}
+	}
+
+	Texture::Texture(const std::filesystem::path& file)
+	{
+		UINT width = 0, height = 0;
+		const std::vector<BYTE> pixels = decode(file, width, height);
+		m_width = static_cast<int>(width);
+		m_height = static_cast<int>(height);
+
+		glGenTextures(1, &m_id);
+		bind(m_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+	}
+
+	Texture::Texture(Texture&& other) noexcept
+		: m_id(std::exchange(other.m_id, 0)), m_width(other.m_width), m_height(other.m_height)
+	{
+	}
+
+	Texture& Texture::operator=(Texture&& other) noexcept
+	{
+		std::swap(m_id, other.m_id);
+		std::swap(m_width, other.m_width);
+		std::swap(m_height, other.m_height);
+		return *this;
 	}
 
 	Texture::~Texture()
 	{
-		#ifdef FREEIMAGE_LIB
-		if (!--m_texturesCounter)
-			FreeImage_DeInitialise();
-		#endif
-
-		glDeleteTextures(1, &n);
+		if (m_id == 0)
+			return;
+		if (s_bound == m_id)
+			s_bound = 0;
+		glDeleteTextures(1, &m_id);
 	}
 
-	void Texture::enable()
+	void Texture::draw(float x, float y, float width, float height) const
 	{
-		if (m_active != this)
-		{
-			glBindTexture(GL_TEXTURE_2D, n);
-			m_active = this;
-		}
-	}
-
-	Engine::Point<float> Texture::getTextureCoords()
-	{
-		return {
-			static_cast<float>(getSourceWidth()) / static_cast<float>(getWidth()),
-			static_cast<float>(getSourceHeight()) / static_cast<float>(getHeight())
-		};
-	}
-
-	Engine::Texture* Texture::load(const char* filename)
-	{
-		Texture* texture = new Texture();
-
-		FREE_IMAGE_FORMAT fif = FreeImage_GetFileType(filename, 0);
-		if (fif == FIF_UNKNOWN)
-			fif = FreeImage_GetFIFFromFilename(filename);
-		if (fif == FIF_UNKNOWN)
-			return nullptr;
-		if (!FreeImage_FIFSupportsReading(fif))
-			return nullptr;
-		FIBITMAP* dib = FreeImage_Load(fif, filename);
-
-		BYTE* bits = FreeImage_GetBits(dib);
-
-		texture->m_sourceWidth = FreeImage_GetWidth(dib);
-		texture->m_sourceHeight = FreeImage_GetHeight(dib);
-
-		const int sizes[] = { 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
-		int sizesCount = sizeof sizes / sizeof(int);
-		unsigned int sourceSize = std::max<unsigned int>(texture->m_sourceWidth, texture->m_sourceHeight);
-		int targetSize = sizes[sizesCount - 1];
-
-		if (sourceSize > targetSize)
-			return nullptr;
-
-		for (int i = 0; i < sizesCount - 1; ++i)
-			if (sourceSize <= sizes[i])
-			{
-				targetSize = sizes[i];
-				break;
-			}
-
-		texture->m_size = targetSize;
-
-		int size = texture->m_sourceWidth * texture->m_sourceHeight * 4;
-		for (int i = 0; i < size; i += 4)
-		{
-			BYTE tmp = bits[i];
-			bits[i] = bits[i + 2];
-			bits[i + 2] = tmp;
-		}
-
-		BYTE* tex = new BYTE[targetSize * targetSize * 4];
-		for (int j = 0, jj = 0; j < targetSize; ++j)
-			for (int i = 0, ii = 0; i < targetSize; ++i)
-			{
-				if (j < texture->m_sourceHeight && i < texture->m_sourceWidth)
-				{
-					for (int k = 0; k < 4; ++k)
-						tex[j * targetSize * 4 + i * 4 + k] = bits[jj * texture->m_sourceWidth * 4 + ii * 4 + k];
-
-					if (++ii >= texture->m_sourceWidth)
-					{
-						ii = 0;
-						++jj;
-					}
-				}
-				else
-				{
-					for (int k = 0; k < 4; ++k)
-						tex[j * targetSize * 4 + i * 4 + k] = static_cast<BYTE>(0);
-				}
-			}
-		
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetSize, targetSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex);
-
-		FreeImage_Unload(dib);
-		delete[] tex;
-
-		return texture;
+		bind(m_id);
+		glBegin(GL_QUADS);
+		glTexCoord2f(0, 1);
+		glVertex2f(x, y);
+		glTexCoord2f(1, 1);
+		glVertex2f(x + width, y);
+		glTexCoord2f(1, 0);
+		glVertex2f(x + width, y + height);
+		glTexCoord2f(0, 0);
+		glVertex2f(x, y + height);
+		glEnd();
 	}
 }

@@ -1,153 +1,83 @@
 #include "enemy.h"
-#include "cellType.h"
+
+#include <iterator>
+#include <vector>
 
 namespace BoulderDash
 {
-	Direction Enemy::findDirectionToHuman(Level* level)
+	std::optional<Engine::Point<int>> Enemy::update(int time, const Level& level, Engine::Point<int> human, std::mt19937& random)
 	{
-		int w = level->getWidth();
-		int h = level->getHeight();
-
-		Engine::Point<int> target = level->findHumanPosition();
-		Engine::Point<int> start = getLocation();
-
-		int* arr = new int[w * h];
-		for (int j = 0; j < h; ++j)
-			for (int i = 0; i < w; ++i)
-			{
-				CellType cell = level->get(i, j);
-				arr[j * w + i] = (cell == NONE || cell == HUMAN) ? 0 : -1;
-			}
-		arr[start.y * w + start.x] = 1;
-
-		bool finded = false;
-		int steps = 1;
-		int currentStep = arr[start.y * w + start.x];
-		while (steps)
+		if (m_moving)
 		{
-			steps = 0;
-			done:
-
-			if (!finded)
-			{
-				int nextStep = currentStep + 1;
-
-				for (int j = 0; j < h; ++j)
-					for (int i = 0; i < w; ++i)
-						if (arr[j * w + i] == currentStep)
-						{
-							if (j > 0 && !arr[(j - 1) * w + i])
-							{
-								arr[(j - 1) * w + i] = nextStep;
-								++steps;
-
-								if (i == target.x && j - 1 == target.y)
-								{
-									finded = true;
-									goto done;
-								}
-							}
-
-							if (i < w - 1 && !arr[j * w + i + 1])
-							{
-								arr[j * w + i + 1] = nextStep;
-								++steps;
-
-								if (i + 1 == target.x && j == target.y)
-								{
-									finded = true;
-									goto done;
-								}
-							}
-
-							if (j < h - 1 && !arr[(j + 1) * w + i])
-							{
-								arr[(j + 1) * w + i] = nextStep;
-								++steps;
-
-								if (i == target.x && j + 1 == target.y)
-								{
-									finded = true;
-									goto done;
-								}
-							}
-
-							if (i > 0 && !arr[j * w + i - 1])
-							{
-								arr[j * w + i - 1] = nextStep;
-								++steps;
-
-								if (i - 1 == target.x && j == target.y)
-								{
-									finded = true;
-									goto done;
-								}
-							}
-						}
-
-				currentStep = nextStep;
-			}
-			else
-				break;
+			m_moving->update(time);
+			m_walkTime += time;
+			if (m_moving->done())
+				m_moving.reset();
 		}
 
-		Direction direction;
-
-		if (!finded)
-		{
-			direction = static_cast<Direction>(rand() % 4);
-		}
-		else
-		{
-			direction = BOTTOM;
-			int currentStep = arr[target.y * w + target.x];
-
-			while (!(target.x == start.x && target.y == start.y))
-			{
-				int nextStep = currentStep - 1;
-
-				if (target.y > 0 && arr[(target.y - 1) * w + target.x] == nextStep)
-				{
-					direction = BOTTOM;
-					target = Engine::Point<int>(target.x, target.y - 1);
-				}
-				else if (target.x < w - 1 && arr[target.y * w + target.x + 1] == nextStep)
-				{
-					direction = LEFT;
-					target = Engine::Point<int>(target.x + 1, target.y);
-				}
-				else if (target.y < h - 1 && arr[(target.y + 1) * w + target.x] == nextStep)
-				{
-					direction = TOP;
-					target = Engine::Point<int>(target.x, target.y + 1);
-				}
-				else if (target.x > 0 && arr[target.y * w + target.x - 1] == nextStep)
-				{
-					direction = RIGHT;
-					target = Engine::Point<int>(target.x - 1, target.y);
-				}
-
-				currentStep = nextStep;
-			}
-		}
-
-		delete arr;
-		return direction;
+		if ((m_stepTimer -= time) > 0)
+			return std::nullopt;
+		m_stepTimer = enemyStepTime;
+		return m_position + step(directionTo(level, human, random));
 	}
 
-	void Enemy::setLocation(int x, int y)
+	void Enemy::moveTo(Engine::Point<int> cell)
 	{
-		if (x > m_pt.x)
-			m_direction = RIGHT;
-		else if (x < m_pt.x)
-			m_direction = LEFT;
-		else if (y > m_pt.y)
-			m_direction = BOTTOM;
-		else if (y < m_pt.y)
-			m_direction = TOP;
-		else
-			m_direction = BOTTOM;
+		const Engine::Point<int> shift = cell - m_position;
+		m_direction = shift.x > 0 ? Direction::Right
+			: shift.x < 0 ? Direction::Left
+			: shift.y < 0 ? Direction::Up
+			: Direction::Down;
+		m_moving.emplace(m_position, cell, enemyStepTime);
+		m_position = cell;
+	}
 
-		m_pt = Engine::Point<int>(x, y);
+	Direction Enemy::directionTo(const Level& level, Engine::Point<int> human, std::mt19937& random) const
+	{
+		// Breadth-first search from the enemy through the cells it can enter, until it reaches the human
+		std::vector<int> distances(static_cast<std::size_t>(level.width() * level.height()), -1);
+		const auto distance = [&](Engine::Point<int> cell) -> int&
+		{
+			return distances[static_cast<std::size_t>(cell.y * level.width() + cell.x)];
+		};
+
+		std::vector<Engine::Point<int>> queue{ m_position };
+		distance(m_position) = 0;
+		bool found = false;
+		for (std::size_t i = 0; i < queue.size() && !found; ++i)
+			for (Direction direction : directions)
+			{
+				const Engine::Point<int> next = queue[i] + step(direction);
+				if (!canEnter(level.at(next)) || distance(next) >= 0)
+					continue;
+				distance(next) = distance(queue[i]) + 1;
+				if (next == human)
+				{
+					found = true;
+					break;
+				}
+				queue.push_back(next);
+			}
+
+		if (!found)
+			return directions[std::uniform_int_distribution<std::size_t>(0, std::size(directions) - 1)(random)];
+
+		// Walk the path back from the human to the cell next to the enemy
+		Engine::Point<int> cell = human;
+		while (distance(cell) > 1)
+			for (Direction direction : directions)
+			{
+				const Engine::Point<int> previous = cell + step(direction);
+				if (level.contains(previous) && distance(previous) == distance(cell) - 1)
+				{
+					cell = previous;
+					break;
+				}
+			}
+
+		for (Direction direction : directions)
+			if (m_position + step(direction) == cell)
+				return direction;
+		return Direction::Down;
 	}
 }

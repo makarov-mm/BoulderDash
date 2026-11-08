@@ -1,37 +1,55 @@
-#ifndef LEVEL_H
-#define LEVEL_H
+#pragma once
 
-#include <vector>
-#include "..\Engine\point.h"
 #include "cellType.h"
+#include "../Engine/point.h"
+
+#include <cassert>
+#include <cstddef>
+#include <filesystem>
+#include <vector>
 
 namespace BoulderDash
 {
+	// A grid of cells; x grows to the right, y downwards.
 	class Level
 	{
-	private:
-		int m_width, m_height;
-		int m_time;
-		CellType* m_map;
 	public:
-		Level(const char* filename);
-		~Level();
+		// Reads a level file: "<width> <height>", the time limit in seconds, then a line of cell characters per row.
+		explicit Level(const std::filesystem::path& file);
 
-		CellType get(int x, int y) const;
-		CellType get(Engine::Point<int> pt) const { return get(pt.x, pt.y); }
+		// Levels/<id>.txt
+		static std::filesystem::path file(int id);
 
-		void set(int x, int y, CellType value);
-		void set(Engine::Point<int> pt, CellType value) { set(pt.x, pt.y, value); }
+		int width() const { return m_width; }
+		int height() const { return m_height; }
+		int timeLimit() const { return m_timeLimit; } // seconds
 
-		int getWidth() const { return m_width; }
-		int getHeight() const { return m_height; }
+		bool contains(Engine::Point<int> cell) const
+		{
+			return cell.x >= 0 && cell.y >= 0 && cell.x < m_width && cell.y < m_height;
+		}
 
-		int getTime() const { return m_time; }
-		static int minCellsOnScreen;
-		Engine::Point<int> findHumanPosition();
-		std::vector<Engine::Point<int>> findEmenies();
-		int getCrystalsCount() const;
+		// Outside the level there are walls.
+		Cell at(Engine::Point<int> cell) const { return contains(cell) ? m_cells[index(cell)] : Cell{ Tile::Box }; }
+
+		void set(Engine::Point<int> cell, Cell value) { m_cells[index(cell)] = value; }
+		void setObject(Engine::Point<int> cell, Object object) { m_cells[index(cell)].object = object; }
+
+		int count(Object object) const;
+
+		// Row by row
+		const std::vector<Cell>& cells() const { return m_cells; }
+		void setCells(std::vector<Cell> cells);
+
+	private:
+		std::size_t index(Engine::Point<int> cell) const
+		{
+			assert(contains(cell));
+			return static_cast<std::size_t>(cell.y * m_width + cell.x);
+		}
+
+		int m_width = 0, m_height = 0;
+		int m_timeLimit = 0;
+		std::vector<Cell> m_cells;
 	};
 }
-
-#endif

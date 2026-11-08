@@ -1,30 +1,29 @@
-#ifndef MOVING_H
-#define MOVING_H
+#pragma once
 
-#include <utility>
-#include "level.h"
-#include "..\Engine\point.h"
+#include "../Engine/point.h"
 
 namespace BoulderDash
 {
+	// The animation of an object moving to the next cell. The level has the object in the new cell already.
 	class Moving
 	{
-	private:
-		Engine::Point<int> m_oldCell, m_targetCell;
-		int m_totalMsecs;
-		int m_msecs;
 	public:
-		Moving(Engine::Point<int> oldCell, Engine::Point<int> targetCell, int msecs)
-			: m_oldCell(oldCell), m_targetCell(targetCell), m_msecs(msecs), m_totalMsecs(msecs)
+		Moving(Engine::Point<int> from, Engine::Point<int> to, int duration)
+			: m_from(from), m_to(to), m_duration(duration), m_left(duration)
 		{ }
 
-		bool contains(int x, int y);
-		void update(int timeSpan);
-		bool isDone();
-		float donePercents() { return 1.f - (m_totalMsecs - m_msecs) / static_cast<float>(m_totalMsecs); }
-		Engine::Point<int> old() { return m_oldCell; }
-		Engine::Point<int> target() { return m_targetCell; }
+		void update(int time) { m_left -= time; }
+		bool done() const { return m_left <= 0; }
+
+		Engine::Point<int> from() const { return m_from; }
+		Engine::Point<int> to() const { return m_to; }
+
+		// Where the object is drawn, relative to the new cell, in cells.
+		Engine::Point<float> offset() const;
+
+	private:
+		Engine::Point<int> m_from, m_to;
+		int m_duration;
+		int m_left; // ms
 	};
 }
-
-#endif

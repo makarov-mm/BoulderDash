@@ -1,34 +1,31 @@
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#pragma once
 
-#include "textureBase.h"
-#include "..\Glut\freeglut.h"
+#include "point.h"
 
-#pragma comment (lib, "FreeImage.lib")
+#include <filesystem>
 
 namespace Engine
 {
-	class Texture final: public TextureBase
+	// An image in an OpenGL texture.
+	class Texture
 	{
-	private:
-		static int m_texturesCounter;
-
-		static Texture* m_active;
-		GLuint n;
-		Texture();
-
-		unsigned int  m_size;
-		unsigned int  m_sourceWidth, m_sourceHeight;
 	public:
-		~Texture() override;
-		static Texture* load(const char* filename);
-		virtual void enable();
-		virtual Point<float> getTextureCoords();
-		unsigned int getWidth() const { return m_size; }
-		unsigned int getHeight() const { return m_size; }
-		unsigned int getSourceWidth() const { return m_sourceWidth; }
-		unsigned int getSourceHeight() const { return m_sourceHeight; }
+		// Loads a PNG (or any image Windows can decode); throws if it cannot.
+		explicit Texture(const std::filesystem::path& file);
+		Texture(Texture&& other) noexcept;
+		Texture& operator=(Texture&& other) noexcept;
+		~Texture();
+
+		int width() const { return m_width; }
+		int height() const { return m_height; }
+		float aspect() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
+
+		// Draws the image stretched over a rectangle; y grows upwards.
+		void draw(float x, float y, float width, float height) const;
+		void draw(const Rect& rect) const { draw(rect.x, rect.y, rect.width, rect.height); }
+
+	private:
+		unsigned int m_id = 0;
+		int m_width = 0, m_height = 0;
 	};
 }
-
-#endif

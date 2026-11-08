@@ -1,37 +1,22 @@
 #include "game.h"
-#include "Screens\menuscreen.h"
+#include "Screens/menuscreen.h"
 
 namespace BoulderDash
 {
-	void Game::load()
+	Game::Game()
+		: GameBase(L"BoulderDash", 800, 600),
+		  m_screen(std::make_unique<Screens::MenuScreen>(m_resources))
 	{
-		m_screen = new Screens::MenuScreen(&m_resources);
 	}
 
-	void Game::unload()
+	void Game::update(int time, const Engine::Input& input)
 	{
-		if (m_screen)
-			delete m_screen;
+		if (auto next = m_screen->update(time, input))
+			m_screen = std::move(next);
 	}
 
-	void Game::update(int timeSpan)
+	void Game::draw(int width, int height)
 	{
-		if (m_screen)
-		{
-			MouseState mouseState(getMouseLeftButton(), getMouseRightButton(), getMouseX(), getMouseY());
-			Screen* nextScreen = m_screen->update(timeSpan, kbdState, mouseState);
-
-			if (nextScreen)
-			{
-				delete m_screen;
-				m_screen = nextScreen;
-			}
-		}
-	}
-
-	void Game::draw(int timeSpan)
-	{
-		if (m_screen)
-			m_screen->draw(timeSpan, getWidth(), getHeight());
+		m_screen->draw(width, height);
 	}
 }

@@ -1,21 +1,20 @@
 #include "cellType.h"
 
+#include <utility>
+
 namespace BoulderDash
 {
-	bool canMoveToCell(CellType cell)
+	int encode(Cell cell)
 	{
-		return cell == NONE ||
-			   cell == GROUND ||
-			   cell == CRYSTAL ||
-			   cell == DOOR ||
-			   cell == HEART ||
-			   cell == CLOCK ||
-			   cell == ENEMY0 ||
-			   cell == ENEMY1;
+		return std::to_underlying(cell.object) << 8 | std::to_underlying(cell.tile);
 	}
 
-	bool canMoveEnemyToCell(CellType cell)
+	std::optional<Cell> decode(int code)
 	{
-		return cell == NONE || cell == HUMAN;
+		const int tile = code & 0xFF;
+		const int object = code >> 8;
+		if (code < 0 || tile > std::to_underlying(Tile::Box) || object > std::to_underlying(Object::Clock))
+			return std::nullopt;
+		return Cell{ static_cast<Tile>(tile), static_cast<Object>(object) };
 	}
 }

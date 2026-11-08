@@ -1,24 +1,21 @@
-#ifndef GAMEOVER_H
-#define GAMEOVER_H
+#pragma once
 
-#include <list>
+#include "../screen.h"
 
-#include "..\screen.h"
-#include "..\resources.h"
-
-namespace BoulderDash
+namespace BoulderDash::Screens
 {
-	namespace Screens
+	// "Game over" or "Time is up"; Enter (or Escape, Space, a click) goes back to the menu.
+	class GameOver final : public Screen
 	{
-		class GameOver final: public Screen
-		{
-		public:
-			GameOver(Resources *resources) : Screen(resources) { }
-			~GameOver() override = default;
-			virtual Screen* update(int timeSpan, std::list<int> kbdEvents, MouseState mouseState);
-			virtual void draw(int timeSpan, int width, int height);
-		};
-	}
-}
+	public:
+		enum class Reason { NoLives, TimeIsUp };
 
-#endif
+		GameOver(const Resources& resources, Reason reason);
+
+		std::unique_ptr<Screen> update(int time, const Engine::Input& input) override;
+		void draw(int width, int height) const override;
+
+	private:
+		const Engine::Texture& m_banner;
+	};
+}

@@ -1,30 +1,14 @@
 #include "animation.h"
 
+#include <format>
+
 namespace Engine
 {
-	Animation::~Animation()
+	Animation::Animation(const std::filesystem::path& directory, int count, int framesPerSecond)
+		: m_frameTime(1000 / framesPerSecond)
 	{
-		for (auto& m_texture : m_textures)
-			delete m_texture;
-	}
-
-	void Animation::update(int timeSpan)
-	{
-		m_timeSpan += timeSpan;
-
-		while (m_timeSpan > m_frameTime)
-		{
-			m_timeSpan -= m_frameTime;
-			++m_frame;
-
-			if (m_frame >= static_cast<int>(m_textures.size()))
-				m_frame = 0;
-		}
-	}
-
-	void Animation::reset()
-	{
-		m_timeSpan = 0;
-		m_frame = 0;
+		m_frames.reserve(static_cast<std::size_t>(count));
+		for (int i = 0; i < count; ++i)
+			m_frames.emplace_back(directory / std::format("frame{}.png", i));
 	}
 }
