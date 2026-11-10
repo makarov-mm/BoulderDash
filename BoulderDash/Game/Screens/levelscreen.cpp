@@ -35,12 +35,12 @@ namespace BoulderDash::Screens
 			return std::nullopt;
 		}
 
-		Engine::Point<float> toFloat(Engine::Point<int> point)
+		Engine::Point<float> to_float(Engine::Point<int> point)
 		{
-			return { static_cast<float>(point.x), static_cast<float>(point.y) };
+			return { .x = static_cast<float>(point.x), .y = static_cast<float>(point.y) };
 		}
 
-		Engine::Point<float> offsetOf(const std::optional<Moving>& moving)
+		Engine::Point<float> offset_of(const std::optional<Moving>& moving)
 		{
 			return moving ? moving->offset() : Engine::Point<float>{};
 		}
@@ -51,6 +51,7 @@ namespace BoulderDash::Screens
 		{
 			if (size <= screen)
 				return (screen - size) / 2;
+
 			return std::clamp(screen / 2 - target, screen - size, 0.f);
 		}
 	}
@@ -66,7 +67,8 @@ namespace BoulderDash::Screens
 	{
 		if (m_level.count(Object::Human) != 1)
 			throw std::runtime_error(std::format("{} must have one human", Engine::utf8(Level::file(id))));
-		findActors();
+
+		find_actors();
 		m_start = m_human;
 	}
 
@@ -74,13 +76,15 @@ namespace BoulderDash::Screens
 	{
 		std::ifstream in(saveFile);
 		int id = 0, lives = 0, time = 0, crystals = 0, totalCrystals = 0;
-		if (in >> id >> lives >> time >> crystals >> totalCrystals && id > 0 && lives > 0 && lives <= maxLives && time > 0
-			&& crystals >= 0 && std::filesystem::exists(Level::file(id)))
+
+		if (in >> id >> lives >> time >> crystals >> totalCrystals && id > 0 && lives > 0 && lives <= maxLives && time > 0 && crystals >= 0 && std::filesystem::exists(Level::file(id)))
 		{
 			auto screen = std::make_unique<LevelScreen>(resources, id, lives);
+
 			if (screen->restore(in, time, crystals))
 				return screen;
 		}
+
 		return std::make_unique<LevelScreen>(resources, 1);
 	}
 
@@ -88,16 +92,22 @@ namespace BoulderDash::Screens
 	{
 		std::vector<Cell> cells;
 		cells.reserve(m_level.cells().size());
+
 		while (cells.size() < m_level.cells().size())
 		{
 			int code = 0;
+
 			if (!(in >> code))
 				return false;
+
 			const std::optional<Cell> cell = decode(code);
+
 			if (!cell)
 				return false;
+
 			cells.push_back(*cell);
 		}
+
 		if (std::ranges::count(cells, Object::Human, &Cell::object) != 1)
 			return false;
 
@@ -105,7 +115,7 @@ namespace BoulderDash::Screens
 		m_timeLeft = time;
 		m_crystals = crystals;
 		m_doorOpen = m_level.count(Object::Crystal) == 0;
-		findActors();
+		find_actors();
 		return true;
 	}
 
@@ -113,28 +123,34 @@ namespace BoulderDash::Screens
 	{
 		std::ofstream out(saveFile);
 		out << std::format("{} {} {} {} {}\n", m_id, m_lives, m_timeLeft, m_crystals, m_totalCrystals);
+
 		for (int y = 0; y < m_level.height(); ++y)
 		{
 			for (int x = 0; x < m_level.width(); ++x)
-				out << encode(m_level.at({ x, y })) << ' ';
+				out << encode(m_level.at({ .x = x, .y = y })) << ' ';
+
 			out << '\n';
 		}
+
 		out.close();
 		if (!out)
 			Engine::showError(std::format("Cannot save the game to {}", saveFile));
 	}
 
-	void LevelScreen::findActors()
+	void LevelScreen::find_actors()
 	{
 		m_enemies.clear();
+
 		for (int y = 0; y < m_level.height(); ++y)
 			for (int x = 0; x < m_level.width(); ++x)
 			{
-				const Object object = m_level.at({ x, y }).object;
+				const Object object = m_level.at({ .x = x, .y = y }).object;
+
 				if (object == Object::Human)
-					m_human = { x, y };
+					m_human = { .x = x, .y = y };
+
 				else if (isEnemy(object))
-					m_enemies.emplace_back(object, Engine::Point<int>{ x, y });
+					m_enemies.emplace_back(object, Engine::Point{ .x = x, .y = y });
 			}
 	}
 
@@ -148,14 +164,18 @@ namespace BoulderDash::Screens
 				save();
 				m_pause.reset();
 				break;
+
 			case PauseScreen::Choice::Resume:
 				m_pause.reset();
 				break;
+
 			case PauseScreen::Choice::None:
 				break;
 			}
+
 			return nullptr;
 		}
+
 		if (input.wasPressed(Engine::Key::Escape))
 		{
 			m_pause.emplace(resources());
@@ -164,29 +184,36 @@ namespace BoulderDash::Screens
 
 		if ((m_timeLeft -= time) <= 0)
 			return std::make_unique<GameOver>(resources(), GameOver::Reason::TimeIsUp);
+
 		m_clock += time;
 
 		if (m_humanMoving)
 		{
 			m_humanMoving->update(time);
+
 			if (m_humanMoving->done())
 				m_humanMoving.reset();
 		}
+
 		if (!m_humanMoving)
 			if (const std::optional<Direction> direction = heldDirection(input))
 				if (auto next = moveHuman(*direction))
 					return next;
 
-		if (auto next = moveEnemies(time))
+		if (std::unique_ptr<Screen> next = moveEnemies(time))
 			return next;
-		if (auto next = dropObjects(time))
+
+		if (std::unique_ptr<Screen> next = dropObjects(time))
 			return next;
 
 		m_doorOpen = m_level.count(Object::Crystal) == 0;
+
 		if (m_doorOpen)
 			m_doorClock += time;
+
 		if (m_humanMoving)
 			m_humanWalkTime += time;
+
 		return nullptr;
 	}
 
@@ -194,6 +221,7 @@ namespace BoulderDash::Screens
 	{
 		if (cell.tile == Tile::Box)
 			return false;
+
 		switch (cell.object)
 		{
 		case Object::Boulder:
@@ -253,7 +281,7 @@ namespace BoulderDash::Screens
 			const bool catches = *target == m_human;
 			m_level.setObject(enemy.position(), Object::None);
 			m_level.setObject(*target, enemy.kind());
-			enemy.moveTo(*target);
+			enemy.move_to(*target);
 			if (catches)
 				if (auto next = loseLife())
 					return next;
@@ -360,12 +388,12 @@ namespace BoulderDash::Screens
 		const float cell = static_cast<float>(size);
 		const float screenWidth = static_cast<float>(width);
 		const float screenHeight = static_cast<float>(height);
-		const Engine::Point<float> human = toFloat(m_human) + offsetOf(m_humanMoving);
+		const Engine::Point<float> human = to_float(m_human) + offset_of(m_humanMoving);
 		const float left = scroll(screenWidth, static_cast<float>(m_level.width()) * cell, (human.x + 0.5f) * cell);
 		const float top = screenHeight - scroll(screenHeight, static_cast<float>(m_level.height()) * cell, (human.y + 0.5f) * cell);
 		const auto rect = [&](Engine::Point<int> position, Engine::Point<float> offset)
 		{
-			const Engine::Point<float> at = toFloat(position) + offset;
+			const Engine::Point<float> at = to_float(position) + offset;
 			return Engine::Rect{ left + at.x * cell, top - (at.y + 1) * cell, cell, cell };
 		};
 
@@ -395,10 +423,10 @@ namespace BoulderDash::Screens
 		for (const Enemy& enemy : m_enemies)
 		{
 			const auto& walking = enemy.kind() == Object::Ghost ? images.ghost : images.dark;
-			walking[static_cast<std::size_t>(enemy.direction())].frame(enemy.walkTime()).draw(rect(enemy.position(), offsetOf(enemy.moving())));
+			walking[static_cast<std::size_t>(enemy.direction())].frame(enemy.walkTime()).draw(rect(enemy.position(), offset_of(enemy.moving())));
 		}
 
-		images.human[static_cast<std::size_t>(m_humanDirection)].frame(m_humanWalkTime).draw(rect(m_human, offsetOf(m_humanMoving)));
+		images.human[static_cast<std::size_t>(m_humanDirection)].frame(m_humanWalkTime).draw(rect(m_human, offset_of(m_humanMoving)));
 
 		drawPanel(width, height);
 	}

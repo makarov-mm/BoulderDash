@@ -4,7 +4,6 @@
 #include "../Engine/point.h"
 
 #include <cassert>
-#include <cstddef>
 #include <filesystem>
 #include <vector>
 

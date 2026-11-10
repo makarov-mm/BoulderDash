@@ -32,7 +32,7 @@ namespace Engine
 		Input input;
 		std::exception_ptr error; // thrown while handling a message
 
-		explicit Window(GameBase& owner) : game(owner) { }
+		explicit Window(GameBase& owner);
 		~Window();
 
 		void open(const wchar_t* title, int width, int height);
@@ -98,6 +98,9 @@ namespace Engine
 		glColor4f(1, 1, 1, 1);
 		glClearColor(0.2f, 0.2f, 0.2f, 1);
 	}
+
+	GameBase::Window::Window(GameBase& owner): game(owner)
+	{ }
 
 	GameBase::Window::~Window()
 	{
@@ -233,16 +236,16 @@ namespace Engine
 	}
 
 	GameBase::GameBase(const wchar_t* title, int width, int height)
-		: m_window(std::make_unique<Window>(*this))
+		: m_window_(std::make_unique<Window>(*this))
 	{
-		m_window->open(title, width, height);
+		m_window_->open(title, width, height);
 	}
 
 	GameBase::~GameBase() = default;
 
 	void GameBase::run()
 	{
-		Window& window = *m_window;
+		Window& window = *m_window_;
 		ShowWindow(window.hwnd, SW_SHOWNORMAL);
 
 		using Clock = std::chrono::steady_clock;

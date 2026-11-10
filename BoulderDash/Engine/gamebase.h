@@ -28,6 +28,6 @@ namespace Engine
 
 	private:
 		struct Window;
-		std::unique_ptr<Window> m_window;
+		std::unique_ptr<Window> m_window_;
 	};
 }

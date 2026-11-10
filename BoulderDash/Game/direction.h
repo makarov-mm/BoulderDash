@@ -23,14 +23,15 @@ namespace BoulderDash
 		switch (direction)
 		{
 		case Direction::Up:
-			return { 0, -1 };
+			return { .x = 0, .y = -1 };
 		case Direction::Right:
-			return { 1, 0 };
+			return { .x = 1, .y = 0 };
 		case Direction::Down:
-			return { 0, 1 };
+			return { .x = 0, .y = 1 };
 		case Direction::Left:
-			return { -1, 0 };
+			return { .x = -1, .y = 0 };
 		}
+
 		std::unreachable();
 	}
 }

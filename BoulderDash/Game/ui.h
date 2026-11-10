@@ -3,7 +3,6 @@
 #include "../Engine/input.h"
 #include "../Engine/texture.h"
 
-#include <cstddef>
 #include <optional>
 #include <vector>
 

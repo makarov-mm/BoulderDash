@@ -19,27 +19,27 @@ namespace BoulderDash
 			switch (c)
 			{
 			case 'x':
-				return {};
+				return { };
 			case '1':
-				return { Tile::Box };
+				return { .tile = Tile::Box };
 			case '2':
-				return { Tile::Empty, Object::Crystal };
+				return { .tile = Tile::Empty, .object = Object::Crystal };
 			case '3':
-				return { Tile::Empty, Object::Human };
+				return { .tile = Tile::Empty, .object = Object::Human };
 			case '4':
-				return { Tile::Empty, Object::Boulder };
+				return { .tile = Tile::Empty, .object = Object::Boulder };
 			case '5':
-				return { Tile::Empty, Object::Door };
+				return { .tile = Tile::Empty, .object = Object::Door };
 			case '6':
-				return { Tile::Empty, Object::Ghost };
+				return { .tile = Tile::Empty, .object = Object::Ghost };
 			case '7':
-				return { Tile::Empty, Object::Dark };
+				return { .tile = Tile::Empty, .object = Object::Dark };
 			case '8':
-				return { Tile::Empty, Object::Heart };
+				return { .tile = Tile::Empty, .object = Object::Heart };
 			case '9':
-				return { Tile::Empty, Object::Clock };
+				return { .tile = Tile::Empty, .object = Object::Clock };
 			default: // '0'
-				return { Tile::Ground };
+				return { .tile = Tile::Ground };
 			}
 		}
 	}
@@ -47,19 +47,24 @@ namespace BoulderDash
 	Level::Level(const std::filesystem::path& file)
 	{
 		std::ifstream in(file);
+
 		if (!in)
 			throw std::runtime_error(std::format("Cannot open {}", Engine::utf8(file)));
+
 		const auto invalid = [&] { return std::runtime_error(std::format("{} is not a level file", Engine::utf8(file))); };
 
 		if (!(in >> m_width >> m_height >> m_timeLimit) || m_width <= 0 || m_height <= 0 || m_width > maxSize || m_height > maxSize || m_timeLimit <= 0)
 			throw invalid();
 
 		m_cells.reserve(static_cast<std::size_t>(m_width * m_height));
+
 		for (int y = 0; y < m_height; ++y)
 		{
 			std::string row;
+
 			if (!(in >> row) || std::ssize(row) < m_width)
 				throw invalid();
+
 			for (int x = 0; x < m_width; ++x)
 				m_cells.push_back(parse(row[static_cast<std::size_t>(x)]));
 		}

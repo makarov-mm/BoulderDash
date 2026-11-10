@@ -13,8 +13,10 @@ namespace BoulderDash
 	{
 		const int tile = code & 0xFF;
 		const int object = code >> 8;
-		if (code < 0 || tile > std::to_underlying(Tile::Box) || object > std::to_underlying(Object::Clock))
+
+		if (code < 0 || std::cmp_greater(tile, std::to_underlying(Tile::Box)) || std::cmp_greater(object, std::to_underlying(Object::Clock)))
 			return std::nullopt;
-		return Cell{ static_cast<Tile>(tile), static_cast<Object>(object) };
+
+		return Cell { .tile = static_cast<Tile>(tile), .object = static_cast<Object>(object) };
 	}
 }

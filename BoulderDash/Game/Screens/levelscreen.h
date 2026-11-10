@@ -31,7 +31,7 @@ namespace BoulderDash::Screens
 	private:
 		bool restore(std::istream& in, int time, int crystals);
 		void save() const;
-		void findActors(); // the human and the enemies in the level
+		void find_actors(); // the human and the enemies in the level
 
 		bool humanCanEnter(Cell cell) const;
 		std::unique_ptr<Screen> moveHuman(Direction direction);

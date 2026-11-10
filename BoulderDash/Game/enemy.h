@@ -34,7 +34,7 @@ namespace BoulderDash
 		std::optional<Engine::Point<int>> update(int time, const Level& level, Engine::Point<int> human, std::mt19937& random);
 
 		// Steps into the next cell.
-		void moveTo(Engine::Point<int> cell);
+		void move_to(Engine::Point<int> cell);
 
 	private:
 		Direction directionTo(const Level& level, Engine::Point<int> human, std::mt19937& random) const;
